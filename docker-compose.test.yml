@@ -1,0 +1,39 @@
+# docker-compose.test.yml
+services:
+  backend-test:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    command: pytest
+    volumes:
+      - ./backend:/app
+    environment:
+      - DEBUG=1
+      - DATABASE_URL=postgres://postgres:postgres@db-test:5432/test_db
+      - CELERY_BROKER_URL=redis://redis-test:6379/0
+    depends_on:
+      - db-test
+      - redis-test
+
+  frontend-test:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    command: npm run test:unit && npm run test:e2e
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://backend-test:8000/api
+    depends_on:
+      - backend-test
+
+  db-test:
+    image: postgres:13
+    environment:
+      - POSTGRES_DB=test_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+
+  redis-test:
+    image: redis:6
